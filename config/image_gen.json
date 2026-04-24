@@ -1,0 +1,8 @@
+{
+  "api_base_url": "http://127.0.0.1:8317",
+  "api_key": "sk-cliproxy-local",
+  "model": "gpt-image-2",
+  "default_size": "1024x1024",
+  "default_style_preset": "diagram",
+  "response_format": "b64_json"
+}

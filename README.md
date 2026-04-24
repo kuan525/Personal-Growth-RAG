@@ -175,6 +175,32 @@
 
 这些方向以后都可以补，但不适合作为你当前阶段的主线。
 
+## 工具补充
+
+当前已具备一个 **Claude 全局图片生成 skill**，通过本地 `cliproxyapi` 调用 `gpt-image-2` 来生成图片。
+
+相关位置：
+
+- Claude 全局 Skill：`/home/kuan525/.claude/skills/gpt-image-2/SKILL.md`
+- Claude 全局执行脚本：`/home/kuan525/.claude/skills/gpt-image-2/generate_image.py`
+- Claude 全局配置：`/home/kuan525/.claude/skills/gpt-image-2/config.json`
+
+这个能力的职责是：
+
+- 根据上下文整理图片生成 prompt
+- 通过本地代理调用 `gpt-image-2`
+- 返回图片结果
+- 在调用方显式指定保存路径时完成落盘
+
+保存路径不再和 skill 固定耦合，而是应在每次具体任务中根据上下文单独决定。
+
+用途包括：
+
+- 为文档生成阅读顺序图
+- 为 PRD 生成流程图
+- 为 README 生成封面图
+- 为系统结构生成示意图
+
 ## 最终结论
 
 你现在最合理的路线不是：
