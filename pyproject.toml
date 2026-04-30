@@ -8,6 +8,9 @@ dependencies = [
     "uvicorn[standard]>=0.30.0",
     "pydantic>=2.8.0",
     "pydantic-settings>=2.4.0",
+    "python-multipart>=0.0.9",
+    "pdfminer.six>=20240706",
+    "langchain-text-splitters>=0.3.0",
 ]
 
 [project.optional-dependencies]

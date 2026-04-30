@@ -10,6 +10,11 @@ class Settings(BaseSettings):
     app_host: str = Field(default="0.0.0.0", alias="APP_HOST")
     app_port: int = Field(default=8000, alias="APP_PORT")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+    data_dir: str = Field(default="data", alias="DATA_DIR")
+    upload_dir_name: str = Field(default="uploads", alias="UPLOAD_DIR_NAME")
+    chunk_dir_name: str = Field(default="chunks", alias="CHUNK_DIR_NAME")
+    chunk_size: int = Field(default=200, alias="CHUNK_SIZE")
+    chunk_overlap: int = Field(default=30, alias="CHUNK_OVERLAP")
 
     model_config = SettingsConfigDict(extra="ignore")
 

@@ -1,2 +1,4 @@
 .vscode/
 src/personal_growth_rag.egg-info/
+data/
+docs/
