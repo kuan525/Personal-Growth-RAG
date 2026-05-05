@@ -1,4 +1,33 @@
+# IDE / editor
 .vscode/
-src/personal_growth_rag.egg-info/
+.idea/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Local runtime data
 data/
+
+# Project docs currently treated as local planning notes
 docs/
