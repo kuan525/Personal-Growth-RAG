@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    # Step 1 只保留服务启动必需配置；数据库、OpenRouter、FAISS 等配置后续步骤再加。
+    # 当前先保留本地优先 MVP 需要的配置；OpenRouter、FAISS 等配置后续步骤再加。
     app_env: str = Field(default="development", alias="APP_ENV")
     app_host: str = Field(default="0.0.0.0", alias="APP_HOST")
     app_port: int = Field(default=8000, alias="APP_PORT")
@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     chunk_dir_name: str = Field(default="chunks", alias="CHUNK_DIR_NAME")
     chunk_size: int = Field(default=200, alias="CHUNK_SIZE")
     chunk_overlap: int = Field(default=30, alias="CHUNK_OVERLAP")
+    database_url: str = Field(default="sqlite:///data/app.db", alias="DATABASE_URL")
 
     model_config = SettingsConfigDict(extra="ignore")
 

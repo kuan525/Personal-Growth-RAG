@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from src.app.api.documents import router as documents_router
 from src.app.common.logging import setup_logging
 from src.app.config import get_settings
+from src.app.storage.database import init_db
 
 logger = logging.getLogger(__name__)
 
@@ -11,6 +12,7 @@ logger = logging.getLogger(__name__)
 def create_app() -> FastAPI:
     settings = get_settings()
     setup_logging(settings)
+    init_db(settings)
 
     app = FastAPI(title="Personal Growth RAG MVP")
     app.include_router(documents_router)
