@@ -36,9 +36,17 @@ document -> parse -> chunk -> metadata -> embedding -> retrieval -> answer with 
 
 - 使用 SQLite + SQLAlchemy
 - 数据库文件：`data/app.db`
-- 当前表：`documents`、`chunks`
+- 当前表：`documents`、`chunks`、`embeddings`
 - 支持 `GET /documents`
 - 支持 `GET /documents/{document_id}`
+
+✅ Semantic Search
+
+- 使用 DashScope `text-embedding-v4` 生成 1024 维向量
+- 使用 FAISS `IndexFlatIP` 做本地向量检索
+- 向量索引保存到 `data/indexes/chunks.faiss`
+- 支持 `POST /search` 返回相关 chunks
+- 支持本地目录批量导入
 
 ## 目标形态
 
@@ -67,6 +75,8 @@ Small steps before big architecture.
 - Pydantic / pydantic-settings
 - SQLAlchemy
 - SQLite
+- DashScope text-embedding-v4
+- FAISS
 - pdfminer.six
 - LangChain text splitters
 - Ruff
@@ -81,6 +91,10 @@ src/app/
 ├── ingestion/    # 上传、解析、chunk、入库
 ├── schemas/      # API 响应模型
 ├── storage/      # SQLAlchemy database / models
+├── embeddings/   # embedding provider
+├── indexing/     # FAISS index
+├── search/       # semantic search
+├── cli/          # 本地命令
 ├── config.py     # 配置
 └── main.py       # FastAPI 入口
 ```
@@ -91,7 +105,8 @@ src/app/
 data/
 ├── app.db        # SQLite metadata
 ├── uploads/      # 原始上传文件
-└── chunks/       # chunk JSON 调试文件
+├── chunks/       # chunk JSON 调试文件
+└── indexes/      # FAISS index 文件
 ```
 
 `data/` 不进入 Git。
@@ -102,6 +117,13 @@ data/
 
 ```bash
 pip install -e ".[dev]"
+```
+
+配置环境变量：
+
+```bash
+cp .env.example .env
+# 然后在 .env 中填写 DASHSCOPE_API_KEY
 ```
 
 启动服务：
@@ -143,6 +165,20 @@ curl -s http://127.0.0.1:8000/documents | python -m json.tool
 curl -s http://127.0.0.1:8000/documents/doc_xxx | python -m json.tool
 ```
 
+语义检索：
+
+```bash
+curl -X POST http://127.0.0.1:8000/search \
+  -H "Content-Type: application/json" \
+  -d '{"query_text":"我有哪些后端开发经历？","top_k":5}'
+```
+
+批量导入本地目录：
+
+```bash
+python -m src.app.cli.ingest_dir /path/to/docs
+```
+
 查看 SQLite：
 
 ```bash
@@ -150,15 +186,67 @@ sqlite3 data/app.db ".tables"
 sqlite3 data/app.db "SELECT id, source_name, status, chunk_count FROM documents;"
 ```
 
+
+## 重置本地数据与重建索引
+
+如果想让历史文档重新走完整链路：
+
+```text
+parse -> chunk -> SQLite -> embedding -> FAISS
+```
+
+推荐做一次本地数据重置，然后用批量导入重新导入原始文档目录。
+
+### 方式一：完全重置，重新导入原始资料
+
+这会删除本地数据库、上传副本、chunk JSON 和 FAISS index：
+
+```bash
+rm -rf data/app.db data/uploads data/chunks data/indexes
+```
+
+然后重新启动服务，或直接执行批量导入：
+
+```bash
+python -m src.app.cli.ingest_dir /path/to/original/docs
+```
+
+其中 `/path/to/original/docs` 应该是你真正保存原始资料的目录，而不是 `data/uploads/`。
+
+导入完成后可以测试检索：
+
+```bash
+curl -s -X POST "http://127.0.0.1:8000/search" \
+  -H "Content-Type: application/json" \
+  -d '{"query_text":"我有哪些后端开发经历？","top_k":5}' \
+  | python -m json.tool
+```
+
+### 方式二：只删除 SQLite 和 FAISS
+
+如果你只想清掉 metadata 和向量索引，但保留 `data/uploads/`、`data/chunks/` 文件，可以执行：
+
+```bash
+rm -f data/app.db
+rm -rf data/indexes
+```
+
+但注意：删除 SQLite 后，系统不再知道 `data/uploads/` 里的文件对应哪些 document。推荐仍然从原始资料目录重新批量导入。
+
+### 注意
+
+- `data/` 是本地运行数据，不进入 Git。
+- `.env` 里的 `DASHSCOPE_API_KEY` 不要删除，除非你要重新配置 key。
+- 旧版本中已经存在但没有 embedding 的文档，不会自动进入 FAISS；需要通过重新导入或后续 backfill 命令处理。
+
 ## 下一步
 
-优先实现最小 RAG 闭环：
+优先实现完整问答闭环：
 
-1. embedding service
-2. FAISS 向量索引
-3. `POST /questions`
-4. retrieval trace
-5. answer with citations
+1. `POST /questions`
+2. retrieval trace
+3. answer with citations
+4. query_runs / retrieval_results / answers / citations 落库
 
 之后再逐步推进：
 

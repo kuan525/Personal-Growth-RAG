@@ -2,6 +2,7 @@ import logging
 
 from fastapi import FastAPI
 from src.app.api.documents import router as documents_router
+from src.app.api.search import router as search_router
 from src.app.common.logging import setup_logging
 from src.app.config import get_settings
 from src.app.storage.database import init_db
@@ -16,6 +17,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(title="Personal Growth RAG MVP")
     app.include_router(documents_router)
+    app.include_router(search_router)
 
     @app.get("/health")
     def health() -> dict[str, str]:
