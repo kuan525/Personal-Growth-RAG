@@ -1,0 +1,5 @@
+ALLOWED_FILE_TYPES = {"txt", "md", "pdf"}
+
+DOCUMENT_STATUS_PROCESSING = "processing"
+DOCUMENT_STATUS_ACTIVE = "active"
+DOCUMENT_STATUS_FAILED = "failed"

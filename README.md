@@ -1,63 +1,14 @@
 # Personal Growth RAG
 
-这是一个面向个人长期使用的本地优先 RAG 项目，目标是把分散的笔记、文档、复盘、项目记录和决策材料，逐步整理成一个可检索、可引用、可持续更新的个人知识系统。
+这是一个面向个人长期使用的本地优先 RAG 项目，目标是把分散的笔记、文档、复盘、项目记录和决策材料，逐步整理成一个可检索、可引用、可持续更新、可复盘的个人知识系统。
 
-它最终想实现的不是一个简单的“文档问答工具”，而是一个围绕个人成长构建的长期知识底座：把一个人过去的学习经历、项目实践、关键选择、阶段复盘、踩坑记录、能力积累和长期目标融合起来，形成一个可以被检索、被追溯、被关联、被复盘的个人成长 RAG。
+它不是普通“文档问答 demo”，而是个人成长知识底座：先从真实资料中检索 evidence，再基于 evidence 回答，并逐步扩展到 query trace、memory、personal graph 和 decision support。
 
-更长期看，它会接入个人图谱，把文档中的项目、技能、目标、问题、决策、资源和 evidence 连接起来。理想状态下，它像是一个融合了个人前半生阅历的本地知识系统：当你面对新的项目、学习方向或关键决策时，它能够调出相关历史，展示依据，指出风险，并帮助你做下一步判断。
-
-当前实现会先从最小 RAG 链路开始，小步推进：
+核心链路：
 
 ```text
 document -> parse -> chunk -> metadata -> embedding -> retrieval -> answer with citations
 ```
-
-## 当前实现
-
-✅ API 服务
-
-- FastAPI 服务骨架
-- `GET /health`
-
-✅ Documents
-
-- `POST /documents`
-- 支持 `.txt` / `.md` / `.pdf`
-- 原文件保存到 `data/uploads/`
-
-✅ Chunks
-
-- `.txt` / `.md` 纯文本读取
-- `.pdf` 使用 `pdfminer.six` 提取文本
-- 使用 `RecursiveCharacterTextSplitter` 做基础 chunking
-- chunk JSON 调试文件保存到 `data/chunks/`
-
-✅ SQLite Metadata
-
-- 使用 SQLite + SQLAlchemy
-- 数据库文件：`data/app.db`
-- 当前表：`documents`、`chunks`、`embeddings`
-- 支持 `GET /documents`
-- 支持 `GET /documents/{document_id}`
-
-✅ Semantic Search
-
-- 使用 DashScope `text-embedding-v4` 生成 1024 维向量
-- 使用 FAISS `IndexFlatIP` 做本地向量检索
-- 向量索引保存到 `data/indexes/chunks.faiss`
-- 支持 `POST /search` 返回相关 chunks
-- 支持本地目录批量导入
-
-## 目标形态
-
-这个项目长期希望形成几层能力：
-
-1. **Evidence Retrieval**：能从个人资料中检索证据，并基于证据回答问题。
-2. **Citation-based QA**：回答必须能追溯到具体 document / chunk。
-3. **Incremental Knowledge Base**：资料持续新增、修改、删除时，知识库可以安全更新。
-4. **Personal Knowledge Graph**：把项目、技能、目标、问题、决策、资源和 evidence 连接起来。
-5. **Memory & Review**：从复盘和项目记录中沉淀长期 memory，例如经验、偏好、反复问题和阶段目标。
-6. **Decision Support**：在关键选择上，基于历史经历和 evidence 给出有边界的分析、风险和下一步建议。
 
 核心原则：
 
@@ -68,15 +19,42 @@ Local-first before platform.
 Small steps before big architecture.
 ```
 
+## 当前实现
+
+✅ Documents & Ingestion
+
+支持 `.txt` / `.md` / `.pdf` 上传与本地目录批量导入，原文件保存到 `data/uploads/`，可维护 `data/library/` 作为个人原始资料库。
+
+✅ Chunking & Metadata
+
+支持文本解析、基础 chunking，并通过 SQLite + SQLAlchemy 持久化 `documents` / `chunks` / `embeddings` 元数据，chunk JSON 调试文件保存到 `data/chunks/`。
+
+✅ Retrieval
+
+已接入 DashScope `text-embedding-v4` + FAISS `IndexFlatIP`，完成 chunk embedding、本地向量索引持久化和语义相似度检索。
+
+✅ Search API
+
+新增 `POST /v1/search`，支持 query -> relevant chunks，返回可追溯的 document / chunk evidence。
+
+✅ Questions MVP
+
+新增 `POST /v1/questions`，接入 DeepSeek V4 Pro，完成 retrieval -> answer with citations 的最小 RAG 问答闭环。
+
+🚧 Next step
+
+实现 Question Trace MVP，将 question / retrieval results / answer / citations 落库，让每次回答都可回放、可评估、可复盘，为后续 memory 和 decision support 打基础。
+
 ## 技术栈
 
 - Python 3.11
 - FastAPI
 - Pydantic / pydantic-settings
-- SQLAlchemy
-- SQLite
+- SQLAlchemy + SQLite
 - DashScope text-embedding-v4
 - FAISS
+- OpenAI SDK compatible API
+- DeepSeek V4 Pro
 - pdfminer.six
 - LangChain text splitters
 - Ruff
@@ -84,32 +62,28 @@ Small steps before big architecture.
 ## 项目结构
 
 ```text
-src/app/
-├── api/          # API 路由
-├── chunking/     # 文本切分
-├── common/       # 通用能力
-├── ingestion/    # 上传、解析、chunk、入库
-├── schemas/      # API 响应模型
-├── storage/      # SQLAlchemy database / models
-├── embeddings/   # embedding provider
-├── indexing/     # FAISS index
-├── search/       # semantic search
-├── cli/          # 本地命令
-├── config.py     # 配置
-└── main.py       # FastAPI 入口
+src/personal_growth_rag/
+├── api/v1/          # HTTP routes + request/response contracts
+├── application/     # 业务用例和主数据流
+├── domain/          # 轻量业务概念、prompt、稳定规则
+├── infrastructure/  # SQLite、FAISS、DashScope、DeepSeek、parser、chunker
+├── core/            # 配置、日志、错误、路径、常量
+├── cli/             # 本地命令入口
+├── utils/           # hash、id、time 等无状态工具
+└── main.py          # FastAPI app factory
 ```
 
 运行后生成本地数据：
 
 ```text
 data/
-├── app.db        # SQLite metadata
-├── uploads/      # 原始上传文件
-├── chunks/       # chunk JSON 调试文件
-└── indexes/      # FAISS index 文件
+├── app.db
+├── uploads/
+├── chunks/
+└── indexes/
 ```
 
-`data/` 不进入 Git。
+`data/` 和 `.env` 不进入 Git；`docs/` 作为正式项目文档进入 Git。
 
 ## 本地运行
 
@@ -123,13 +97,13 @@ pip install -e ".[dev]"
 
 ```bash
 cp .env.example .env
-# 然后在 .env 中填写 DASHSCOPE_API_KEY
+# 填写 DASHSCOPE_API_KEY 和 DEEPSEEK_API_KEY
 ```
 
 启动服务：
 
 ```bash
-uvicorn src.app.main:app --reload
+uvicorn personal_growth_rag.main:app --reload
 ```
 
 接口文档：
@@ -143,49 +117,49 @@ http://127.0.0.1:8000/docs
 健康检查：
 
 ```bash
-curl http://127.0.0.1:8000/health
+curl -s http://127.0.0.1:8000/v1/health | python -m json.tool
 ```
 
 上传文档：
 
 ```bash
-curl -X POST "http://127.0.0.1:8000/documents" \
+curl -X POST "http://127.0.0.1:8000/v1/documents" \
   -F "file=@/path/to/document.pdf"
 ```
 
 查询文档列表：
 
 ```bash
-curl -s http://127.0.0.1:8000/documents | python -m json.tool
+curl -s http://127.0.0.1:8000/v1/documents | python -m json.tool
 ```
 
 查询文档详情：
 
 ```bash
-curl -s http://127.0.0.1:8000/documents/doc_xxx | python -m json.tool
+curl -s http://127.0.0.1:8000/v1/documents/doc_xxx | python -m json.tool
 ```
 
 语义检索：
 
 ```bash
-curl -X POST http://127.0.0.1:8000/search \
+curl -s -X POST http://127.0.0.1:8000/v1/search \
   -H "Content-Type: application/json" \
-  -d '{"query_text":"我有哪些后端开发经历？","top_k":5}'
+  -d '{"query_text":"我有哪些后端开发经历？","top_k":5}' | python -m json.tool
+```
+
+RAG 问答：
+
+```bash
+curl -s -X POST http://127.0.0.1:8000/v1/questions \
+  -H "Content-Type: application/json" \
+  -d '{"question":"我有哪些后端开发经历？","top_k":5}' | python -m json.tool
 ```
 
 批量导入本地目录：
 
 ```bash
-python -m src.app.cli.ingest_dir /path/to/docs
+python -m personal_growth_rag.cli.ingest_dir /path/to/docs
 ```
-
-查看 SQLite：
-
-```bash
-sqlite3 data/app.db ".tables"
-sqlite3 data/app.db "SELECT id, source_name, status, chunk_count FROM documents;"
-```
-
 
 ## 重置本地数据与重建索引
 
@@ -195,73 +169,67 @@ sqlite3 data/app.db "SELECT id, source_name, status, chunk_count FROM documents;
 parse -> chunk -> SQLite -> embedding -> FAISS
 ```
 
-推荐做一次本地数据重置，然后用批量导入重新导入原始文档目录。
-
-### 方式一：完全重置，重新导入原始资料
-
-这会删除本地数据库、上传副本、chunk JSON 和 FAISS index：
+可以删除本地运行数据后重新导入：
 
 ```bash
 rm -rf data/app.db data/uploads data/chunks data/indexes
+python -m personal_growth_rag.cli.ingest_dir /path/to/original/docs
 ```
 
-然后重新启动服务，或直接执行批量导入：
+注意：`data/uploads/` 是系统保存的上传副本，不建议作为唯一原始资料库；更推荐维护一个独立原始目录，例如 `data/library/`。
 
-```bash
-python -m src.app.cli.ingest_dir /path/to/original/docs
-```
-
-其中 `/path/to/original/docs` 应该是你真正保存原始资料的目录，而不是 `data/uploads/`。
-
-导入完成后可以测试检索：
-
-```bash
-curl -s -X POST "http://127.0.0.1:8000/search" \
-  -H "Content-Type: application/json" \
-  -d '{"query_text":"我有哪些后端开发经历？","top_k":5}' \
-  | python -m json.tool
-```
-
-### 方式二：只删除 SQLite 和 FAISS
-
-如果你只想清掉 metadata 和向量索引，但保留 `data/uploads/`、`data/chunks/` 文件，可以执行：
-
-```bash
-rm -f data/app.db
-rm -rf data/indexes
-```
-
-但注意：删除 SQLite 后，系统不再知道 `data/uploads/` 里的文件对应哪些 document。推荐仍然从原始资料目录重新批量导入。
-
-### 注意
-
-- `data/` 是本地运行数据，不进入 Git。
-- `.env` 里的 `DASHSCOPE_API_KEY` 不要删除，除非你要重新配置 key。
-- 旧版本中已经存在但没有 embedding 的文档，不会自动进入 FAISS；需要通过重新导入或后续 backfill 命令处理。
-
-## 下一步
-
-优先实现完整问答闭环：
-
-1. `POST /questions`
-2. retrieval trace
-3. answer with citations
-4. query_runs / retrieval_results / answers / citations 落库
-
-之后再逐步推进：
-
-- 增量更新
-- 个人图谱
-- memory / review
-- decision support
-- evaluation / regression
-
-更多内部规划见 `docs/`。
-
-## 开发
-
-运行代码检查：
+## 开发检查
 
 ```bash
 ruff check .
 ```
+
+## 结构约定
+
+项目按“入口 -> 用例 -> 领域概念 -> 基础设施”组织：`api/v1` 只负责 HTTP 接入和契约，`application` 负责可复用业务用例，`domain` 放稳定概念和 prompt，`infrastructure` 封装 SQLite / FAISS / DashScope / DeepSeek / parser 等具体实现。CLI、后续 jobs、evaluation 不调用 API，而是直接复用 application。
+
+```text
+API / CLI
+  -> application use case
+    -> domain data / prompt
+    -> infrastructure provider / repository / vectorstore
+```
+
+当前最重要的三条用例链路：
+
+```text
+ingest_document: file -> parse -> chunk -> SQLite -> embedding -> FAISS
+search_chunks: query -> query embedding -> FAISS -> SQLite hydrate -> evidence chunks
+answer_question: question -> retrieval -> prompt -> DeepSeek -> answer + citations
+```
+
+API 成功和失败都统一返回 envelope：
+
+成功：
+
+```json
+{
+  "success": true,
+  "error_code": null,
+  "message": "ok",
+  "data": {},
+  "request_id": null
+}
+```
+
+失败：
+
+```json
+{
+  "success": false,
+  "error_code": "DOCUMENT_NOT_FOUND",
+  "message": "Document not found",
+  "data": null,
+  "request_id": null
+}
+```
+
+这样前端只需要先判断 `success`；失败时读取 `error_code/message`，成功时读取 `data`。
+
+
+Document API 的成功响应只暴露文档公开字段，例如 `document_id/source_name/file_type/status/chunk_count/created_at/updated_at`。本地排障字段如 `stored_path/chunk_path/error_message` 保留在 SQLite，不放进成功态 `data`，避免前端把内部实现细节当产品字段依赖。

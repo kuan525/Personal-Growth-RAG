@@ -28,6 +28,3 @@ env/
 
 # Local runtime data
 data/
-
-# Project docs currently treated as local planning notes
-docs/

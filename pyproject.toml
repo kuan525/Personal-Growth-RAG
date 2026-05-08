@@ -29,3 +29,8 @@ src = ["src"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["personal_growth_rag*"]
+
