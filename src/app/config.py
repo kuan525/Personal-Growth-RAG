@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     embedding_batch_size: int = Field(default=10, alias="EMBEDDING_BATCH_SIZE")
     faiss_index_path: str = Field(default="data/indexes/chunks.faiss", alias="FAISS_INDEX_PATH")
     search_top_k: int = Field(default=5, alias="SEARCH_TOP_K")
+    deepseek_api_key: str = Field(default="", alias="DEEPSEEK_API_KEY")
+    llm_base_url: str = Field(default="https://api.deepseek.com", alias="LLM_BASE_URL")
+    llm_model: str = Field(default="deepseek-v4-pro", alias="LLM_MODEL")
+    llm_max_tokens: int = Field(default=1200, alias="LLM_MAX_TOKENS")
 
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
