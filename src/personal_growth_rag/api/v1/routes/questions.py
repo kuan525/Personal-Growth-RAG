@@ -24,6 +24,16 @@ def ask_question(
     result = answer_question(request.question, request.top_k, settings, db)
     data = QuestionResponse(
         answer=result.answer,
-        citations=[CitationResponse(**citation.__dict__) for citation in result.citations],
+        citations=[
+            CitationResponse(
+                document_id=citation.document_id,
+                source_name=citation.source_name,
+                chunk_id=citation.chunk_id,
+                chunk_order=citation.chunk_order,
+                score=citation.score,
+                text=citation.text,
+            )
+            for citation in result.citations
+        ],
     )
     return ok(data)

@@ -22,5 +22,17 @@ def search(
     db: Annotated[Session, Depends(get_db_session)],
 ) -> ApiResponse[SearchResponse]:
     results = search_chunks(request.query_text, request.top_k, settings, db)
-    data = SearchResponse(results=[SearchResultResponse(**result.__dict__) for result in results])
+    data = SearchResponse(
+        results=[
+            SearchResultResponse(
+                document_id=result.document_id,
+                source_name=result.source_name,
+                chunk_id=result.chunk_id,
+                chunk_order=result.chunk_order,
+                score=result.score,
+                text=result.text,
+            )
+            for result in results
+        ]
+    )
     return ok(data)
